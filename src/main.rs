@@ -13,7 +13,6 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conn = Connection::open_in_memory()?;
     let mut db = TempDb::new(&conn)?;
     db.insert()?;
-    db.iter()?;
 
     Ok(())
 }

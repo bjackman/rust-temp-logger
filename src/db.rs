@@ -42,20 +42,16 @@ impl<'a> TempDb<'a> {
         Ok(())
     }
 
-    // TODO hide MappedRows from caller?
-    pub fn iter(&mut self) -> Result<(), Box<dyn Error>> {
-        // TODO figure out how to return an iterator
-        let row_iter = self.query_stmt.query_map(params![], |row| {
+    // TODO Return an iterator instead of a vector
+    pub fn get_records(&mut self) -> Result<Vec<TempRecord>, Box<dyn Error>> {
+        let results: Vec<TempRecord> = self.query_stmt.query_map(params![], |row| {
             let timestamp_s: i64 = row.get(0)?; // s64?
             Ok(TempRecord {
                 time: UNIX_EPOCH + Duration::new(timestamp_s as u64, 0),
                 temp: ThermodynamicTemperature::new::<degree_celsius>(row.get(1)?)
             })
-        })?;
-        for record in row_iter {
-            println!("{:?}", record.unwrap());
-        }
-        Ok(())
+        })?.map(Result::unwrap).collect();
+        Ok(results)
     }
 }
 
