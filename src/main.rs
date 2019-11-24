@@ -1,6 +1,6 @@
 mod db;
 
-use db::TempDb;
+use db::{ Temp, degree_celsius, TempDb };
 use std::error::Error;
 use rusqlite::Connection;
 
@@ -12,7 +12,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     // I'm not happy with it.
     let conn = Connection::open_in_memory()?;
     let mut db = TempDb::new(&conn)?;
-    db.insert()?;
+    db.insert(Temp::new::<degree_celsius>(20.0))?;
 
     Ok(())
 }
