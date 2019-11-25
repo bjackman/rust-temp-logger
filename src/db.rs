@@ -52,7 +52,10 @@ impl<'a> TempDb<'a> {
     // TODO Return an iterator instead of a vector
     pub fn get_records(&mut self) -> Result<Vec<TempRecord>, Box<dyn Error>> {
         let results: Vec<TempRecord> = self.query_stmt.query_map(params![], |row| {
-            let timestamp_s: i64 = row.get(0)?; // s64?
+            // rusqlite won't directly give us a u64 because SQLite can't
+            // store them. Rust won't silently cast an i64 to u64 because it's
+            // lossy. So we explicitly .get an i64, then explicitly cast to u64.
+            let timestamp_s: i64 = row.get(0)?;
             Ok(TempRecord {
                 time: UNIX_EPOCH + Duration::new(timestamp_s as u64, 0),
                 temp: Temp::new::<kelvin>(row.get(1)?)
