@@ -38,6 +38,7 @@ impl<'a> TempDb<'a> {
         })
     }
 
+    // TODO get rid of the Box<dyn Error>s
     pub fn insert(&mut self, temp: Temp) -> Result<(), Box<dyn Error>> {
         let now_s = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         // uom stores values in SI base unit, hence accessing .value gets us
