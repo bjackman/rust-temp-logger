@@ -73,15 +73,23 @@ impl<'a> TempDb<'a> {
         })
     }
 
-    pub fn insert(&mut self, temp: Temp) -> Result<()> {
-        let now_s = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
-        // uom stores values in SI base unit, hence accessing .value gets us
-        // Kelvin
-        // TODO is there a better way of doing this where we don't have to rely
-        // on this knowledge?
-        self.insert_stmt.execute_named(&[(":timestamp_s", &(now_s as i64)),
-                                         (":temp_k", &(temp.value))])?;
-        Ok(())
+    pub fn insert(&mut self, time: SystemTime, temp: Temp) -> Result<()> {
+        if let Ok(duration) = time.duration_since(UNIX_EPOCH) {
+            let now_s = duration.as_secs();
+            // uom stores values in SI base unit, hence accessing .value gets us
+            // Kelvin
+            // TODO is there a better way of doing this where we don't have to rely
+            // on this knowledge?
+            self.insert_stmt.execute_named(&[(":timestamp_s", &(now_s as i64)),
+                                             (":temp_k", &(temp.value))])?;
+            Ok(())
+        } else {
+            Err(Error::TimestampError)
+        }
+    }
+
+    pub fn insert_now(&mut self, temp: Temp) -> Result<()> {
+        self.insert(SystemTime::now(), temp)
     }
 
     // TODO Return an iterator instead of a vector
@@ -103,6 +111,7 @@ impl<'a> TempDb<'a> {
 
 #[cfg(test)]
 mod tests {
+    use std::time::{ SystemTime, Duration };
     use rusqlite::{ Connection };
     use crate::db::{ Temp, degree_celsius, TempDb };
 
@@ -116,12 +125,26 @@ mod tests {
     }
 
     #[test]
+    fn timestamp() {
+        let conn = Connection::open_in_memory().unwrap();
+        let mut db = TempDb::new(&conn).unwrap();
+
+        let time = SystemTime::UNIX_EPOCH.checked_add(Duration::new(1000, 0)).unwrap();
+        db.insert(time, Temp::new::<degree_celsius>(50.0)).unwrap();
+
+        let records = db.get_records().unwrap();
+
+        assert_eq!(records.len(), 1);
+        assert_eq!(records.get(0).unwrap().time, time);
+    }
+
+    #[test]
     fn two_rows() {
         let conn = Connection::open_in_memory().unwrap();
         let mut db = TempDb::new(&conn).unwrap();
 
-        db.insert(Temp::new::<degree_celsius>(30.0)).unwrap();
-        db.insert(Temp::new::<degree_celsius>(-40.0)).unwrap();
+        db.insert_now(Temp::new::<degree_celsius>(30.0)).unwrap();
+        db.insert_now(Temp::new::<degree_celsius>(-40.0)).unwrap();
         let records = db.get_records().unwrap();
 
         assert_eq!(records.len(), 2);
