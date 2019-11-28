@@ -1,10 +1,11 @@
 mod db;
+mod web;
 
 use std::time::{ SystemTime, Duration };
-use db::{ Temp, degree_celsius, TempDb, TempRecord };
+use db::{ Temp, degree_celsius, TempDb };
 use std::error::Error;
 use rusqlite::Connection;
-use gnuplot::{Figure, Caption, Color};
+use gnuplot::{ Figure };
 
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO this sucks.
@@ -40,7 +41,7 @@ fn main() -> Result<(), Box<dyn Error>> {
         .lines(&x, &y, &[]);
     fg.show().unwrap();
 
-    println!("Done");
+    web::serve();
 
     Ok(())
 }
