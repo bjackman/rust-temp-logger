@@ -1,7 +1,7 @@
-use std::time::{ SystemTime, UNIX_EPOCH, Duration };
-use std::error::Error;
+use std::time::{ SystemTime, SystemTimeError, UNIX_EPOCH, Duration };
 use uom::si::{ f64::ThermodynamicTemperature };
-use rusqlite::{ Connection, Statement, params };
+use rusqlite::{ Connection, Statement, params, };
+use std::fmt;
 
 pub type Temp = ThermodynamicTemperature;
 pub use uom::si::thermodynamic_temperature::{ degree_celsius, kelvin };
@@ -17,8 +17,43 @@ pub struct TempDb<'a> {
     query_stmt: Statement<'a>,
 }
 
+#[derive(Debug)]
+pub enum Error {
+    SqliteError(rusqlite::Error), // Error passed on from SQLite DB
+    TimestampError,               // You gave a timestamp that couldn't be stored
+}
+
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self  {
+            Error::SqliteError(err) => {
+                write!(f, "SQLite error: {}", err)
+            },
+            Error::TimestampError => {
+                write!(f, "Invalid timstamp")
+            }
+        }
+    }
+}
+
+impl From<rusqlite::Error> for Error {
+    fn from(error: rusqlite::Error) -> Self {
+        return Error::SqliteError(error);
+    }
+}
+
+impl From<SystemTimeError> for Error {
+    fn from(_: SystemTimeError) -> Self {
+        return Error::TimestampError;
+    }
+}
+
+impl std::error::Error for Error {} // Just use defaults
+
+type Result<T> = std::result::Result<T, Error>;
+
 impl<'a> TempDb<'a> {
-    pub fn new(conn: &'a Connection) -> Result<TempDb<'a>, Box<dyn Error>> {
+    pub fn new(conn: &'a Connection) -> Result<TempDb<'a>> {
         conn.execute(
             "CREATE TABLE temperature (
                  id          INTEGER PRIMARY KEY,
@@ -38,8 +73,7 @@ impl<'a> TempDb<'a> {
         })
     }
 
-    // TODO get rid of the Box<dyn Error>s
-    pub fn insert(&mut self, temp: Temp) -> Result<(), Box<dyn Error>> {
+    pub fn insert(&mut self, temp: Temp) -> Result<()> {
         let now_s = SystemTime::now().duration_since(UNIX_EPOCH)?.as_secs();
         // uom stores values in SI base unit, hence accessing .value gets us
         // Kelvin
@@ -51,7 +85,7 @@ impl<'a> TempDb<'a> {
     }
 
     // TODO Return an iterator instead of a vector
-    pub fn get_records(&mut self) -> Result<Vec<TempRecord>, Box<dyn Error>> {
+    pub fn get_records(&mut self) -> Result<Vec<TempRecord>> {
         let results: Vec<TempRecord> = self.query_stmt.query_map(params![], |row| {
             // rusqlite won't directly give us a u64 because SQLite can't
             // store them. Rust won't silently cast an i64 to u64 because it's
@@ -61,7 +95,7 @@ impl<'a> TempDb<'a> {
                 time: UNIX_EPOCH + Duration::new(timestamp_s as u64, 0),
                 temp: Temp::new::<kelvin>(row.get(1)?)
             })
-        })?.map(Result::unwrap).collect();
+        })?.map(std::result::Result::unwrap).collect();
         Ok(results)
     }
 }
