@@ -9,3 +9,4 @@ edition = "2018"
 [dependencies]
 rusqlite = "0.20.0"
 uom = "0.26.0"
+gnuplot = "0.0.32"

@@ -4,6 +4,7 @@ use std::time::{ SystemTime, Duration };
 use db::{ Temp, degree_celsius, TempDb, TempRecord };
 use std::error::Error;
 use rusqlite::Connection;
+use gnuplot::{Figure, Caption, Color};
 
 fn main() -> Result<(), Box<dyn Error>> {
     // TODO this sucks.
@@ -23,11 +24,23 @@ fn main() -> Result<(), Box<dyn Error>> {
             .expect("DB Insert failed");
     }
 
-    for &TempRecord{time, temp} in db.get_records()
-            .expect("Failed to query records")
-            .iter() {
-        println!("{:?}: {:?}", time, temp);
-    }
+    let records = db.get_records().expect("Failed to query records");
+
+    let x: Vec<u64> = records.iter().map(|r| {
+        r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+    }).collect();
+
+    let y: Vec<f64> = records.iter().map(|r| {
+        r.temp.value
+    }).collect();
+
+    let mut fg = Figure::new();
+    fg.set_terminal("pngcairo", "plot.png");
+    fg.axes2d()
+        .lines(&x, &y, &[]);
+    fg.show().unwrap();
+
+    println!("Done");
 
     Ok(())
 }
