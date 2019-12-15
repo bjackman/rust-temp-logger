@@ -55,7 +55,7 @@ type Result<T> = std::result::Result<T, Error>;
 impl<'a> TempDb<'a> {
     pub fn new(conn: &'a Connection) -> Result<TempDb<'a>> {
         conn.execute(
-            "CREATE TABLE temperature (
+            "CREATE TABLE IF NOT EXISTS temperature (
                  id          INTEGER PRIMARY KEY,
                  timestamp_s INTEGER,
                  temp_k      REAL)",
