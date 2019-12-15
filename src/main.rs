@@ -1,15 +1,16 @@
 mod db;
 mod web;
 mod sensor;
+mod plot;
 
 use std::time::{ SystemTime, Duration };
 use db::{ Temp, degree_celsius, TempDb };
 use std::error::Error;
 use rusqlite::Connection;
-use gnuplot::{ Figure };
 use std::sync::{ Arc, Mutex, Condvar };
 use std::thread;
 use std::thread::sleep;
+use plot::plot_png;
 
 #[macro_use]
 extern crate clap;
@@ -71,23 +72,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conn = Connection::open(db_path)?;
     let mut db = TempDb::new(&conn)?;
 
-    let records = db.get_records().expect("Failed to query records");
-
-    let x: Vec<u64> = records.iter().map(|r| {
-        r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
-    }).collect();
-
-    let y: Vec<f64> = records.iter().map(|r| {
-        r.temp.value
-    }).collect();
-
-    let mut fg = Figure::new();
-    fg.set_terminal("pngcairo", "/tmp/plot.png");
-    fg.axes2d()
-        .lines(&x, &y, &[]);
-    fg.show().unwrap();
-
-    web::serve();
+    web::serve(plot_png(&mut db));
 
     // Gracefully terminate the sensor polling thread
     sleep(Duration::from_millis(15));
