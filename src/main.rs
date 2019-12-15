@@ -36,7 +36,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     }).collect();
 
     let mut fg = Figure::new();
-    fg.set_terminal("pngcairo", "plot.png");
+    fg.set_terminal("pngcairo", "/tmp/plot.png");
     fg.axes2d()
         .lines(&x, &y, &[]);
     fg.show().unwrap();
