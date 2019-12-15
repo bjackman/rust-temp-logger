@@ -1,5 +1,6 @@
 mod db;
 mod web;
+mod sensor;
 
 use std::time::{ SystemTime, Duration };
 use db::{ Temp, degree_celsius, TempDb };
