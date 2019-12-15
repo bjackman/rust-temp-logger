@@ -7,3 +7,8 @@ The idea is to:
 - Generate a graph and serve it over HTTP
 
 over-engineering as much as possible along the way.
+
+Need:
+
+- `sudo apt install gnuplot`
+- `sudo apt install libsqlite3-dev`
