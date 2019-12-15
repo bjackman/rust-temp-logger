@@ -88,7 +88,6 @@ impl<'a> TempDb<'a> {
         }
     }
 
-    #[allow(dead_code)]
     pub fn insert_now(&mut self, temp: Temp) -> Result<()> {
         self.insert(SystemTime::now(), temp)
     }

@@ -27,12 +27,13 @@ fn insert_fake_data(db: &mut TempDb) {
     }
 }
 
-// Poll the sensor until the bool guarded by the Mutex+Condvar is set to true
-fn do_poll(mutex_cond: Arc<(Mutex<bool>, Condvar)>) {
+// Poll the sensor until the bool guarded by the Mutex+Condvar is set to true.
+// Write temperature recordings into the database as they are made
+fn do_poll(mutex_cond: Arc<(Mutex<bool>, Condvar)>, mut db: TempDb) {
     let (mutex, cond) = &*mutex_cond;
     let mut done = mutex.lock().unwrap();
     loop {
-        sensor::poll();
+        db.insert_now(sensor::poll()).expect("Failed to insert into database");
 
         let result = cond.wait_timeout(done, Duration::from_millis(1000)).unwrap();
         // Can't do re-structuring assignment without "let" hence use of
@@ -51,18 +52,22 @@ fn main() -> Result<(), Box<dyn Error>> {
     ).get_matches();
     let db_path = matches.value_of("db").unwrap_or("/tmp/temp-logger.sqlite");
 
-    // Spin up a thread to poll the sensor
-    let poll_killer = Arc::new((Mutex::new(false), Condvar::new()));
-    let poll_killer2 = poll_killer.clone();
-    thread::spawn(move|| {
-        do_poll(poll_killer2);
-    });
-
     // TODO this sucks.
     // See the probem described here:
     // https://stackoverflow.com/questions/48117710/return-a-reference-together-with-the-referenced-object-in-rust
     // Having the Connection allocated in the caller gets around the issue, but
     // I'm not happy with it.
+    // Spin up a thread to poll the sensor
+    let poll_killer = Arc::new((Mutex::new(false), Condvar::new()));
+    let poll_killer2 = poll_killer.clone();
+    let db_path2 = db_path.to_owned();
+    thread::spawn(move|| {
+        let conn_write = Connection::open(db_path2).expect("Error opening DB conncetion");
+        let db_write = TempDb::new(&conn_write).expect("Error connecting to database");
+
+        do_poll(poll_killer2, db_write);
+    });
+
     let conn = Connection::open(db_path)?;
     let mut db = TempDb::new(&conn)?;
 
