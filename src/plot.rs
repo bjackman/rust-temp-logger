@@ -17,9 +17,8 @@ pub fn plot_png(db: &mut TempDb) -> Vec<u8> {
     }).collect();
 
     let mut fg = Figure::new();
-    fg.set_terminal("pngcairo", "/tmp/plot.png");
-    fg.axes2d()
-        .lines(&x, &y, &[]);
+    fg.set_terminal("png", "/tmp/plot.png");
+    fg.axes2d().lines(&x, &y, &[]);
     fg.show().unwrap();
 
     let mut file = File::open("/tmp/plot.png").expect("Failed to open plot file");

@@ -63,7 +63,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let poll_killer2 = poll_killer.clone();
     let db_path2 = db_path.to_owned();
     thread::spawn(move|| {
-        let conn_write = Connection::open(db_path2).expect("Error opening DB conncetion");
+        let conn_write = Connection::open(db_path2).expect("Error opening DB connection");
         let db_write = TempDb::new(&conn_write).expect("Error connecting to database");
 
         do_poll(poll_killer2, db_write);

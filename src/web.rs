@@ -1,5 +1,4 @@
 use tiny_http::{ Server, Response };
-use std::io::Read;
 
 pub fn serve(plot_png_data: Vec<u8>) {
     let server = Server::http("0.0.0.0:8080").expect("Failed to create HTTP server");
