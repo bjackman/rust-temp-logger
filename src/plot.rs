@@ -1,40 +1,69 @@
 extern crate tempfile;
 
-use std::time::SystemTime;
+// use std::time::SystemTime;
 use crate::db::TempDb;
-use gnuplot::{ Figure, AxesCommon, Auto, Format, Rotate };
-use std::fs::File;
-use std::io::Read;
-use tempfile::tempdir;
+use std::time::SystemTime;
+use std::io::Write;
+use std::process::{ Command, Stdio };
+use std::fmt;
+
+#[derive(Debug)]
+pub enum Error {
+    GnuplotError(std::process::Output), // Something went wrong with Gnuplot
+    CommandError(std::io::Error), // Failed to run Gnuplot
+}
+use Error::{ CommandError, GnuplotError };
+
+impl From<std::io::Error> for Error {
+    fn from(error: std::io::Error) -> Self {
+        CommandError(error)
+    }
+}
+
+// TODO: these errors don't actually get printed by default???
+impl fmt::Display for Error {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self  {
+            Error::GnuplotError(output) => {
+                write!(f, "Gnuplot error: {}", String::from_utf8_lossy(&output.stderr))
+            },
+            Error::CommandError(err) => {
+                write!(f, "Failed to run gnuplot command: {}", err)
+            }
+        }
+    }
+}
+
+impl std::error::Error for Error {} // Just use defaults
+
+type Result<T> = std::result::Result<T, Error>;
 
 // Read some data from a temperature database, plot it, and return a plot as PNG data
-pub fn plot_png(db: &mut TempDb) -> Vec<u8> {
-    let records = db.get_records().expect("Failed to query records");
+pub fn plot_png(db: &mut TempDb) -> Result<Vec<u8>> {
+    // Note Rust's API doesn't support writing a string directly to stdin in
+    // this expression hence the ridiculous dance with spawn() and piping
+    let mut gnuplot = Command::new("gnuplot")
+        .stdin(Stdio::piped())
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped())
+        .spawn()?;
 
-    let x: Vec<u64> = records.iter().map(|r| {
-        r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
-    }).collect();
+    {
+        let gnuplot_cmds = include_bytes!("commands.gnuplot");
+        let child_stdin = gnuplot.stdin.as_mut().unwrap();
+        child_stdin.write_all(gnuplot_cmds)?;
+        for r in db.get_records().expect("Failed to query records").iter() {
+            let time_s = r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+            let temp_k = r.temp.value;
+            child_stdin.write(format!("{} {}\n", time_s, temp_k).as_bytes())?;
+        }
 
-    let y: Vec<f64> = records.iter().map(|r| {
-        r.temp.value
-    }).collect();
+    }
 
-    let tmp_dir = tempdir().expect("Failed to create temp dir for plotting");
-    let png_path = tmp_dir.path().join("plot.png");
-    let png_path = png_path.to_str().unwrap();
-    let mut fg = Figure::new();
-    fg.set_terminal("png", png_path);
-    fg.axes2d()
-        .set_x_time(true)
-        .set_x_ticks(Some((Auto, 0)), &[Format("%Y/%m/%d %H:%M:%S")], &[Rotate(90.)])
-        .set_y_label("Temp (Kelvin)", &[])
-        .lines(&x, &y, &[]);
-    fg.show().expect("Gnuplot failed");
-    fg.close();
-
-    let mut file = File::open(png_path).expect("Failed to open plot file");
-    let mut plot_png_data = Vec::new();
-    file.read_to_end(&mut plot_png_data).expect("Failed to read PNG data from file");
-
-    plot_png_data
+    let result = gnuplot.wait_with_output()?;
+    if result.status.success() {
+        Ok(result.stdout)
+    } else {
+        Err(GnuplotError(result))
+    }
 }
