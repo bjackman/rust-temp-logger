@@ -19,7 +19,8 @@ pub fn plot_png(db: &mut TempDb) -> Vec<u8> {
     let mut fg = Figure::new();
     fg.set_terminal("png", "/tmp/plot.png");
     fg.axes2d().lines(&x, &y, &[]);
-    fg.show().unwrap();
+    fg.show().expect("Gnuplot failed");
+    fg.close();
 
     let mut file = File::open("/tmp/plot.png").expect("Failed to open plot file");
     let mut plot_png_data = Vec::new();
