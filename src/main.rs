@@ -10,7 +10,6 @@ use rusqlite::Connection;
 use std::sync::{ Arc, Mutex, Condvar };
 use std::thread;
 use std::thread::sleep;
-use plot::plot_png;
 
 #[macro_use]
 extern crate clap;
@@ -72,7 +71,7 @@ fn main() -> Result<(), Box<dyn Error>> {
     let conn = Connection::open(db_path)?;
     let mut db = TempDb::new(&conn)?;
 
-    web::serve(plot_png(&mut db)?);
+    web::serve(&mut db);
 
     // Gracefully terminate the sensor polling thread
     sleep(Duration::from_millis(15));
