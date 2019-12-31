@@ -2,7 +2,7 @@ extern crate tempfile;
 
 use std::time::{ SystemTime, Duration };
 use crate::db::TempDb;
-use gnuplot::{ Figure };
+use gnuplot::{ Figure, AxesCommon };
 use std::fs::File;
 use std::io::Read;
 use tempfile::tempdir;
@@ -24,7 +24,9 @@ pub fn plot_png(db: &mut TempDb) -> Vec<u8> {
     let png_path = png_path.to_str().unwrap();
     let mut fg = Figure::new();
     fg.set_terminal("png", png_path);
-    fg.axes2d().lines(&x, &y, &[]);
+    fg.axes2d()
+        .set_y_label("Temp (Kelvin)", &[])
+        .lines(&x, &y, &[]);
     fg.show().expect("Gnuplot failed");
     fg.close();
 
