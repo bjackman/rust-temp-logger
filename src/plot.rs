@@ -8,8 +8,8 @@ use std::io::Read;
 pub fn plot_png(db: &mut TempDb) -> Vec<u8> {
     let records = db.get_records().expect("Failed to query records");
 
-    let x: Vec<u64> = records.iter().map(|r| {
-        r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs()
+    let x: Vec<Duration> = records.iter().map(|r| {
+        r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap()
     }).collect();
 
     let y: Vec<f64> = records.iter().map(|r| {
