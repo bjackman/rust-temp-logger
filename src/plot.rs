@@ -22,7 +22,6 @@ impl From<std::io::Error> for Error {
     }
 }
 
-// TODO: these errors don't actually get printed by default???
 impl fmt::Display for Error {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self  {
