@@ -1,6 +1,6 @@
 use crate::plot;
 
-use tiny_http::{ Server, Response };
+use tiny_http::{ Server, Response, Header };
 use crate::db::TempDb;
 use plot::plot_png;
 
@@ -18,9 +18,12 @@ pub fn serve(db: &mut TempDb) {
             },
             Err(plot::Error::NoDataError) => {
                 Response::from_string("No data yet")
+                    .with_status_code(503)
+                    .with_header("Retry-After: 1".parse::<Header>().unwrap())
             }
-            Err(e) => {
-                panic!(e); // TODO
+            Err(_) => {
+                Response::from_string("Internal server error")
+                    .with_status_code(500)
             }
         };
         request.respond(response).expect("request.response failed");
