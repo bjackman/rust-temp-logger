@@ -89,7 +89,6 @@ impl<'a> TempDb<'a> {
         self.insert(SystemTime::now(), temp)
     }
 
-    // TODO Return an iterator instead of a vector
     pub fn get_records(&mut self) -> Result<Vec<TempRecord>> {
         let results: Vec<TempRecord> = self.query_stmt.query_map(params![], |row| {
             // rusqlite won't directly give us a u64 because SQLite can't
