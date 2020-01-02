@@ -10,6 +10,8 @@ set timefmt "%s"
 set format x "%Y/%m/%d %H:%M:%S"
 set xtics rotate
 
+set grid
+
 # Format Y-Axis
 set ylabel "Temp (Celsius)"
 
@@ -17,4 +19,4 @@ set ylabel "Temp (Celsius)"
 set key off
 
 # Do the plotting; data should be concatenated to this file.
-plot '-' using 1:2 with linespoints
+plot '-' using 1:2 with points pointtype 7 pointsize 0.5
