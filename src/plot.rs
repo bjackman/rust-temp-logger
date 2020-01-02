@@ -64,7 +64,8 @@ pub fn plot_png(db: &mut TempDb) -> Result<Vec<u8>> {
         let child_stdin = gnuplot.stdin.as_mut().unwrap();
         child_stdin.write_all(gnuplot_cmds)?;
         for r in records {
-            let time_s = r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
+            let time_us = r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_micros();
+            let time_s = (time_us as f64) / 1000000.;
             let temp_k = r.temp.get::<degree_celsius>();
             child_stdin.write(format!("{} {}\n", time_s, temp_k).as_bytes())?;
         }

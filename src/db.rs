@@ -2,6 +2,7 @@ use std::time::{ SystemTime, SystemTimeError, UNIX_EPOCH, Duration };
 use uom::si::{ f64::ThermodynamicTemperature };
 use rusqlite::{ Connection, Statement, params, };
 use std::fmt;
+use std::convert::TryInto;
 
 pub type Temp = ThermodynamicTemperature;
 pub use uom::si::thermodynamic_temperature::{ degree_celsius, kelvin };
@@ -56,16 +57,16 @@ impl<'a> TempDb<'a> {
     pub fn new(conn: &'a Connection) -> Result<TempDb<'a>> {
         conn.execute(
             "CREATE TABLE IF NOT EXISTS temperature (
-                 id          INTEGER PRIMARY KEY,
-                 timestamp_s INTEGER,
-                 temp_k      REAL)",
+                 id           INTEGER PRIMARY KEY,
+                 timestamp_us INTEGER,
+                 temp_k       REAL)",
             params![])?;
 
         let insert_stmt = conn.prepare(
-            "INSERT INTO temperature (timestamp_s, temp_k)
-                    VALUES ((:timestamp_s), (:temp_k))",)?;
+            "INSERT INTO temperature (timestamp_us, temp_k)
+                    VALUES ((:timestamp_us), (:temp_k))",)?;
         let query_stmt = conn.prepare(
-            "SELECT timestamp_s, temp_k FROM temperature")?;
+            "SELECT timestamp_us, temp_k FROM temperature")?;
 
         Ok(TempDb {
             insert_stmt,
@@ -75,8 +76,8 @@ impl<'a> TempDb<'a> {
 
     pub fn insert(&mut self, time: SystemTime, temp: Temp) -> Result<()> {
         if let Ok(duration) = time.duration_since(UNIX_EPOCH) {
-            let now_s = duration.as_secs();
-            self.insert_stmt.execute_named(&[(":timestamp_s", &(now_s as i64)),
+            let now_us = duration.as_micros();
+            self.insert_stmt.execute_named(&[(":timestamp_us", &(now_us as i64)),
                                              (":temp_k", &(temp.get::<kelvin>()))])?;
             Ok(())
         } else {
@@ -94,9 +95,9 @@ impl<'a> TempDb<'a> {
             // rusqlite won't directly give us a u64 because SQLite can't
             // store them. Rust won't silently cast an i64 to u64 because it's
             // lossy. So we explicitly .get an i64, then explicitly cast to u64.
-            let timestamp_s: i64 = row.get(0)?;
+            let timestamp_us: i64 = row.get(0)?;
             Ok(TempRecord {
-                time: UNIX_EPOCH + Duration::new(timestamp_s as u64, 0),
+                time: UNIX_EPOCH + Duration::from_micros(timestamp_us.try_into().unwrap()),
                 temp: Temp::new::<kelvin>(row.get(1)?)
             })
         })?.map(std::result::Result::unwrap).collect();
