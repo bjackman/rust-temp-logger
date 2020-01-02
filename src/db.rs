@@ -76,12 +76,8 @@ impl<'a> TempDb<'a> {
     pub fn insert(&mut self, time: SystemTime, temp: Temp) -> Result<()> {
         if let Ok(duration) = time.duration_since(UNIX_EPOCH) {
             let now_s = duration.as_secs();
-            // uom stores values in SI base unit, hence accessing .value gets us
-            // Kelvin
-            // TODO is there a better way of doing this where we don't have to rely
-            // on this knowledge?
             self.insert_stmt.execute_named(&[(":timestamp_s", &(now_s as i64)),
-                                             (":temp_k", &(temp.value))])?;
+                                             (":temp_k", &(temp.get::<kelvin>()))])?;
             Ok(())
         } else {
             Err(Error::TimestampError)
