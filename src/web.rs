@@ -8,9 +8,7 @@ use std::io::Cursor;
 fn gen_response(db: &mut TempDb) -> Response<Cursor<Vec<u8>>> {
     match plot_png(db) {
             Ok(png_data) =>  {
-                // TODO I don't want to copy this data
-                // I think the API makes that impossible though?
-                Response::from_data(png_data.clone())
+                Response::from_data(png_data)
             },
             Err(plot::Error::NoDataError) => {
                 Response::from_string("No data yet")
