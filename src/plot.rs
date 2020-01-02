@@ -6,6 +6,7 @@ use std::time::SystemTime;
 use std::io::Write;
 use std::process::{ Command, Stdio };
 use std::fmt;
+use uom::si::thermodynamic_temperature::degree_celsius;
 
 #[derive(Debug)]
 pub enum Error {
@@ -64,7 +65,7 @@ pub fn plot_png(db: &mut TempDb) -> Result<Vec<u8>> {
         child_stdin.write_all(gnuplot_cmds)?;
         for r in records {
             let time_s = r.time.duration_since(SystemTime::UNIX_EPOCH).unwrap().as_secs();
-            let temp_k = r.temp.value;
+            let temp_k = r.temp.get::<degree_celsius>();
             child_stdin.write(format!("{} {}\n", time_s, temp_k).as_bytes())?;
         }
 

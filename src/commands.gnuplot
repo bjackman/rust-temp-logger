@@ -11,7 +11,7 @@ set format x "%Y/%m/%d %H:%M:%S"
 set xtics rotate
 
 # Format Y-Axis
-set ylabel "Temp (Kelvin)"
+set ylabel "Temp (Celsius)"
 
 # Don't print a legend, there's only one line
 set key off
