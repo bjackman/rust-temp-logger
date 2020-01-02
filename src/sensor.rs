@@ -10,7 +10,8 @@ static mut LAST_TEMP_C: f64 = 10.0;
 /// This is actually just a stub
 pub fn poll() -> Temp {
     sleep(Duration::from_millis(random::<u8>().into()));
-    let temp_delta = (random::<f64>() % 1.0) - 2.0;
+    // random<f64> generates values in the range 0 to 1
+    let temp_delta = (random::<f64>() * 2.0) - 1.0;
     let temp_c;
     unsafe { // To allow accessing mutable static
         temp_c = LAST_TEMP_C + temp_delta;
