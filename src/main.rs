@@ -11,8 +11,9 @@ use std::sync::{ Arc, Mutex, Condvar };
 use std::thread;
 use std::thread::sleep;
 
-#[macro_use]
-extern crate clap;
+#[macro_use] extern crate clap;
+#[macro_use] extern crate log;
+extern crate env_logger;
 
 #[allow(dead_code)]
 fn insert_fake_data(db: &mut TempDb) {
@@ -46,6 +47,7 @@ fn do_poll(mutex_cond: Arc<(Mutex<bool>, Condvar)>, mut db: TempDb) {
 }
 
 fn main() -> Result<(), Box<dyn Error>> {
+    env_logger::init();
     // Start by parsing arguments
     let matches = clap_app!(app =>
         (@arg DB_PATH: --db +takes_value "Path to temperature DB. Created if nonexistent")

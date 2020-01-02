@@ -17,7 +17,8 @@ fn gen_response(db: &mut TempDb) -> Response<Cursor<Vec<u8>>> {
                     .with_status_code(503)
                     .with_header("Retry-After: 1".parse::<Header>().unwrap())
             }
-            Err(_) => {
+            Err(e) => {
+                error!("Internal plotting error: {}", e);
                 Response::from_string("Internal server error")
                     .with_status_code(500)
             }
@@ -27,7 +28,7 @@ fn gen_response(db: &mut TempDb) -> Response<Cursor<Vec<u8>>> {
 pub fn serve(db: &mut TempDb) {
     let server = Server::http("0.0.0.0:8080").expect("Failed to create HTTP server");
 
-    println!("Going into server loop");
+    info!("Going into server loop");
     loop {
         let request = server.recv().expect("Error from server.recv");
         let response = gen_response(db);
