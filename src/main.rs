@@ -79,10 +79,12 @@ fn main() -> Result<(), Box<dyn Error>> {
     sleep(Duration::from_millis(15));
     let (lock, cond) = &*poll_killer;
     {
+        info!("Terminating polling thread");
         let mut done = lock.lock().unwrap();
         *done = true;
         cond.notify_all();
     }
 
+    info!("Done");
     Ok(())
 }
